@@ -2,7 +2,7 @@
 Simple translator of part of SIGNAL programming language
 
 Grammar:
-```ANTLR
+```HTML
 <signal-program> --> <program>
 <program> --> PROGRAM <procedure-identifier> ; <block>
 <block> --> <declarations> BEGIN <statements-list> END
