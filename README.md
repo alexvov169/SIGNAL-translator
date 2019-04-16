@@ -3,13 +3,12 @@ Simple translator of part of SIGNAL programming language
 
 Grammar:
 
-<pre>
-1. <signal-program> --> <program>
-2. <program> --> PROGRAM <procedure-identifier> ; <block>
-3. <block> --> <declarations> BEGIN <statements-list> END
-4. <statements-list> --> <empty>
-5. <declarations> --> <constant-declarations>
-6. <constant-declarations> --> CONST <constant-declarations-list> | <empty>
+> 1. <signal-program> --> <program>
+> 2. <program> --> PROGRAM <procedure-identifier> ; <block>
+> 3. <block> --> <declarations> BEGIN <statements-list> END
+> 4. <statements-list> --> <empty>
+> 5. <declarations> --> <constant-declarations>
+> 6. <constant-declarations> --> CONST <constant-declarations-list> | <empty>
 7. <constant-declarations-list> -->
             <constant-declaration> <constant-declarations-list> 
             | <empty>
@@ -26,4 +25,3 @@ Grammar:
 18. <digits-string> --> <digit><digits-string> | <empty>
 19. <digit> --> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 20. <letter> --> A | B | C | D | ... | Z
-</pre>
