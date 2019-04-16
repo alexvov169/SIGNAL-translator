@@ -4,7 +4,7 @@ Simple translator of part of SIGNAL programming language
 Grammar:
 
 <pre>
-1. <signal-program> --> <program>
+> 1. <signal-program> --> <program>
 2. <program> --> PROGRAM <procedure-identifier> ; <block>
 3. <block> --> <declarations> BEGIN <statements-list> END
 4. <statements-list> --> <empty>
