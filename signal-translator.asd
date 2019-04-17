@@ -2,8 +2,9 @@
 
 (asdf:defsystem :signal-translator
   :class :package-inferred-system 
-  :description "Lexical analyzer"
+  :description "Signal translator"
   :version "0.0.1"
-  :author "Olexiy Vovchok"
-  :depends-on (:signal-translator/lexical-analyzer
+  :author "Oleksii Vovchok"
+  :depends-on (#| :signal-translator/syntax-analyzer |#
+	       :signal-translator/lexical-analyzer
 	       :signal-translator/test-all))
