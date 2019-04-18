@@ -26,8 +26,9 @@
 	(num 0))
     (list (lambda (id) (gethash id id+num-table))
 	  (lambda (id)
-	       (setvkkv-table num id num+id-table id+num-table)
-	       (incf num))
+	    (setvkkv-table num id num+id-table id+num-table)
+	    (prog1 num
+	      (incf num)))
 	  (lambda () (list num+id-table id+num-table)))))
 
 (defun make-keyword-table (keywords)
@@ -41,7 +42,7 @@
   `(with-open-file (stream ,filespec)
      (with-attributes-table category-array 128
          'err (((or 32 8 9 10 13) 'ws)
-               (39 'constant)
+	       (39 'constant)
                (40 'or-comment-error)
                ((range 48 57) 'digit)
                ((range 65 90) 'letter)
