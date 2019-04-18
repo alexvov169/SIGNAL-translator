@@ -181,7 +181,7 @@
 	(graph->dot g s))
       
       (graph->dot-external
-       g "./test.svg"
+       g "./sig3.svg"
        :type :svg
        :edge-labeler
        (lambda (e s) (princ (cl-graph::value e) s))
