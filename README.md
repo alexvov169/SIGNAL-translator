@@ -29,6 +29,7 @@ Grammar:
 
 Examples:
 
+```FORTRAN
 PROGRAM SIG3;
 CONST A = '3$EXP(5)'; (*this is
        	  	       a comment*)
@@ -47,7 +48,7 @@ END.
   (* багаторядковий
 коментар *)
   (*****) (*(()*())*) (*;.:*)
-
+```
 
 
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
