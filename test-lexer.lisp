@@ -3,17 +3,12 @@
 (uiop:define-package :signal-translator/test-lexer
     (:nicknames :test-lexer)
   (:use :common-lisp :signal-translator/lexical-analyzer)
-  (:export #:call-lexer))
+  (:export #:call-lexer
+	   #:print-error-table
+	   #:dump-token
+	   #:dump-constant))
 
 (in-package :test-lexer)
-
-(defun reverse-hash-table (hash-table &key (new-test #'eql))
-  (let ((result (make-hash-table :test new-test)))
-    (maphash (lambda (key value)
-               (setf (gethash value result)
-                     key))
-             hash-table)
-    result))
 
 (defun dump-token (token reversed-kw-table
                    reversed-id-table constants-table
@@ -22,7 +17,7 @@
     (:single-char (code-char token-value))
     (:keyword (gethash token-value reversed-kw-table))
     (:identifier (gethash token-value reversed-id-table))
-    (:constant (dump-constant (gethash token-value constants-table)))
+    (:complex-constant (dump-constant (gethash token-value constants-table)))
     (t (error "Lexer dump error: wrong token"))))
 
 (defun print-token-table (token-table reversed-kw-table
@@ -55,6 +50,11 @@
 (defun print-constant-tuple (key value &optional outstream)
   (format outstream "~10a:  ~30a~%" key (dump-constant value)))
 
+(defun print-error-table (error-table who outstream)
+  (map 'vector (lambda (error-message)
+		 (format outstream "~a: ~a~%" who error-message))
+       error-table))
+
 (defun call-lexer (filespec outstream)
   (destructuring-bind ((token-table
 			(reversed-id-table identifiers-table)
@@ -73,8 +73,5 @@
     (format outstream "~%CONSTANT TABLE:~%")
     (print-hash-table #'print-constant-tuple constants-table outstream)
     (format outstream "~%ERRORS:~%")
-    (map 'vector (lambda (error-message)
-		   (format outstream "LEXER> ~a~%"
-			   error-message))
-	 error-table))
+    (print-error-table error-table "LEXER" outstream))
   t)

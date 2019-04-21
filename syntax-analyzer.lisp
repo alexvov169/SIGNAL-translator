@@ -2,21 +2,21 @@
 
 (uiop:define-package :signal-translator/syntax-analyzer
     (:nicknames :parser)
-  (:use :common-lisp :cl-graph
-	:signal-translator/category-array
+  (:use :common-lisp)
+  (:use :signal-translator/category-array
 	:signal-translator/lexical-analyzer)
-  (:export #:lexer
+  (:export #:parser
            #:eof
            #:digit))
 
 (in-package :parser)
 
-(defun parse (lexer-output)
+(defun parse (lexer-output error-handler)
   (destructuring-bind ((token-table
 			(reversed-id-table identifiers-table)
 			constants-table)
 		       (reversed-kw-table keywords-table)
-		       error-table)
+		       lexer-error-table)
       lexer-output
     '(declare (ignore identifiers-table reversed-id-table
 		     constants-table
@@ -37,6 +37,13 @@
 		 (when (< token-index token-end)
 		   (prog1 (%peek)
 		     (incf token-index))))
+
+	       (%err-str (expected-p un/expected-what
+			  &key (to nil) (before nil) (after nil))
+		 (funcall error-handler
+			  (create-error-message
+			   expected-p un/expected-what
+			   :to to :before before :after after)))
 
 	       (%token-eq (token-type token-value &aux (token (%token)))
 		 (and (eq (first token) token-type)
@@ -102,7 +109,7 @@
 		 (eq (first token) name-key))
 
 	       (%complex-number-p ()
-		 (%predicate :constant (%peek)))
+		 (%predicate :complex-constant (%peek)))
 
 	       (%complex-number ()
 		 (if (%complex-number-p)
@@ -120,78 +127,21 @@
 	      (list (list (list reversed-id-table identifiers-table)
 			  constants-table)
 		    (list reversed-kw-table keywords-table)
-		    error-table))
+		    lexer-error-table))
 	))
     )
   )
 
-(defun call-parser (filespec)
-  (destructuring-bind (tree
-		       (((reversed-id-table identifiers-table)
-			 constants-table)
-			(reversed-kw-table keywords-table)
-			error-table))
-      (parse (lexer filespec))
-    (declare (ignore identifiers-table keywords-table error-table))
-    (tree-to-graph tree reversed-kw-table reversed-id-table
-		   constants-table)))
 
-
-(defstruct unique-vertex-impl
-  data key)
-
-(defun make-unique-vertex (data)
-  (make-unique-vertex-impl
-   :data data
-   :key (gensym)))
-
-(defun tree-to-graph (tree reversed-kw-table
-		      reversed-id-table constants-table)
-  (labels
-      ((%fill-graph-with-tree (g root branches)
-	 (mapc (lambda (branch)
-		 (if (atom branch)
-		     (add-edge-between-vertexes
-			  g root
-			  (make-unique-vertex
-			   (if (eq branch :empty)
-			       branch
-			       (test-lexer::dump-token
-				(list (unique-vertex-impl-data root)
-				      branch)
-				reversed-kw-table
-				reversed-id-table
-				constants-table)))
-			  :value "")
-		     (let ((branch-root (make-unique-vertex
-					 (first branch))))
-		       (add-edge-between-vertexes
-			g root branch-root :value "")
-		       (%fill-graph-with-tree
-			g branch-root (rest branch)))))
-	       branches)))
-    (let ((g (make-instance 'graph-container 
-			    :default-edge-type :directed
-			    :vertex-test #'equalp)))
-      (%fill-graph-with-tree g (make-unique-vertex (first tree))
-			     (rest tree))
-      (with-open-file (s "./test.dot"
-			 :direction :output
-			 :if-exists :supersede)
-	(graph->dot g s))
-      
-      (graph->dot-external
-       g "./sig3.svg"
-       :type :svg
-       :edge-labeler
-       (lambda (e s) (princ (cl-graph::value e) s))
-       :vertex-labeler 
-       (lambda (v s)
-	 (let ((data (unique-vertex-impl-data
-		      (cl-graph::value v))))
-	   (princ
-	    (if (symbolp data)
-		 (format nil "<~a>" (string-downcase data))
-		 data)
-	    s)))
-       ))))
+(defun parser (lexer-output)
+  (destructuring-bind (error-handler error-table-getter)
+      (error-keeper)
+    (destructuring-bind (tree
+			 (((reversed-id-table identifiers-table)
+			   constants-table)
+			  (reversed-kw-table keywords-table)
+			  lexer-error-table))
+	(parse lexer-output error-handler)
+      (declare (ignore identifiers-table keywords-table lexer-error-table))
+      (list tree reversed-kw-table reversed-id-table constants-table
+	    (funcall error-table-getter)))))
