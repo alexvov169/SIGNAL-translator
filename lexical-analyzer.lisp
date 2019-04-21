@@ -4,6 +4,8 @@
     (:nicknames :lexer)
   (:use :common-lisp :signal-translator/category-array)
   (:export #:lexer
+	   #:create-error-message
+	   #:error-keeper
            #:eof
            #:digit))
 
@@ -32,13 +34,13 @@
 	  (lambda () (list num+id-table id+num-table)))))
 
 (defun make-keyword-table (keywords)
-  (destructuring-bind (get-key set-id get-tabs) (make-identifiers-tables-wrapper)
+  (destructuring-bind (get-key set-id get-tabs)
+      (make-identifiers-tables-wrapper)
     (declare (ignore get-key))
     (mapc set-id keywords)
     (funcall get-tabs)))
 
-(defmacro with-open-signal-program (filespec
-                                    &body body)
+(defmacro with-open-signal-program (filespec &body body)
   `(with-open-file (stream ,filespec)
      (with-attributes-table category-array 128
          'err (((or 32 8 9 10 13) 'ws)
@@ -70,6 +72,26 @@
                                         (char-code char)))))
          ,@body))))
 
+(defun create-error-message (curr-char position expected-p un/expected-what
+			     &key (to nil) (before nil) (after nil))
+  (format nil "~aexpected ~s ~a~a~a~a~a"
+	  (if expected-p "" "not ")
+	  un/expected-what
+	  (if after
+	      (format nil "after ~s, " after)
+	      "")
+	  (if before
+	      (format nil "before ~a, " before)
+	      "")
+	  (if to
+	      (format nil "to ~a, " to)
+	      "")
+	  (if expected-p
+	      (format nil "got ~s " curr-char)
+	      "")
+	  (format nil "at line ~a, column ~a"
+		  (first position)
+		  (second position))))
 
 (defun lexical-analyzer (filespec keywords-table id-wrapper error-handler
                          &optional
@@ -92,32 +114,12 @@
 			(not (%predicate 'ws ws))))))
 	     
 	     (%err-str (expected-p un/expected-what
-			&key
-			  (to nil to-p)
-			  (before nil before-p)
-			  (after nil after-p))
-	       (%error (format nil "~aexpected ~s ~a~a~a~a~a"
-			       (if expected-p "" "not ")
-			       un/expected-what
-			       (if after-p
-				   (format nil "after ~s, " after)
-				   "")
-			       (if before-p
-				   (format nil "before ~a, " before)
-				   "")
-			       (if to-p
-				   (format nil "to ~a, " to)
-				   "")
-			       (if expected-p 
-				   (format nil "got ~s " curr-char)
-				   "")
-			       (let ((position (funcall positioner)))
-				 (format nil "at line ~a, column ~a"
-					 (first position)
-					 (second position))))))
-
-	     (%error (message)
-	       (funcall error-handler message))
+			&key (to nil) (before nil) (after nil))
+	       (funcall error-handler
+			(create-error-message
+			 curr-char (funcall positioner)
+			 expected-p un/expected-what
+			 :to to :before before :after after)))
 
 	     (%single-char-token ()
 	       (%out :single-char (char-code curr-char))
@@ -210,7 +212,7 @@
 		   (setf (gethash constant-hash constants-table)
 			 (list re im))
 		   (incf constant-offset)
-		   (%out :constant constant-hash))))
+		   (%out :complex-constant constant-hash))))
 
 	     (%com-eof-p (com)
 	       (when (eq 'eof com)

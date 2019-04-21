@@ -1,8 +1,11 @@
 (in-package :cl-user) 
 
 (uiop:define-package :signal-translator/test-all
-    (:nicknames :lexer-test)
-  (:use :common-lisp :signal-translator/test-lexer)
+    (:nicknames :test-all)
+  (:use :common-lisp :signal-translator/test-lexer
+	:signal-translator/test-parser
+        :signal-translator/markup-lexer
+	:signal-translator/markup-parser)
   (:export #:call-lexer))
 
-(in-package :lexer-test)
+(in-package :test-all)
