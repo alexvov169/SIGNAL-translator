@@ -16,12 +16,12 @@
 
 (defun markup-head (head-row)
   (cons :tr
-	(mapcar (lambda (h) (list :th (format nil "~a" h)))
+	(mapcar (lambda (h) (list :th h))
 		head-row)))
 
 (defun markup-row (row)
   (cons :tr
-	(mapcar (lambda (d) (list :td (format nil "~a" d)))
+	(mapcar (lambda (d) (list :td d))
 		row)))
 
 (defun markup-data-rows (data-rows)
@@ -39,7 +39,7 @@
 		     (lambda (token)
 		       (list (first (first token))
 			     (second (first token))
-			     (second token)
+			     (format nil "~a" (second token))
 			     (dump-token (second token) reversed-kw-table
 					 reversed-id-table constants-table)))
 		     token-table)))
@@ -65,11 +65,10 @@
   (list :p string))
 
 (defun markup-error-table (error-table who)
-  (print (markup-table
-	  nil
-	  (map 'list (lambda (error-message)
-		       (format nil "~a: ~a~%" who error-message))
-	       error-table))))
+  (cons :table
+	(map 'list (lambda (error-message)
+		     (list :tr (list :td (format nil "~a: ~a" who error-message))))
+	     error-table)))
 
 (defun markup-lexer-output (lexer-output)
   (destructuring-bind ((token-table
@@ -79,14 +78,15 @@
 		       error-table)
       lexer-output
     (declare (ignore identifiers-table keywords-table))
-    (markup* (markup-paragraph "TOKEN TABLE:")
-	     (markup-token-table token-table reversed-kw-table
-				 reversed-id-table constants-table)
-	     (markup-paragraph "KEYWORD TABLE:")
-	     (markup-hash-table reversed-kw-table)
-	     (markup-paragraph "IDENTIFIER TABLE:")
-	     (markup-hash-table reversed-id-table)
-	     (markup-paragraph "CONSTANT TABLE:")
-	     (markup-constant-table constants-table)
-	     (markup-paragraph "ERRORS:")
-	     (markup-error-table error-table :lexer))))
+    (markup*
+     (markup-paragraph "TOKEN TABLE")
+     (markup-token-table token-table reversed-kw-table
+			 reversed-id-table constants-table)
+     (list :table
+	   (markup-head '("KEYWORD TABLE" "IDENTIFIER TABLE" "CONSTANT TABLE"))
+	   (list :tr
+		 (list :td (markup-hash-table reversed-kw-table))
+		 (list :td (markup-hash-table reversed-id-table))
+		 (list :td (markup-constant-table constants-table))))
+     (markup-paragraph "ERRORS:")
+     (markup-error-table error-table :lexer))))

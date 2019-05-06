@@ -11,6 +11,17 @@
 
 (in-package :parser)
 
+'(defconstant +first-following+
+  (list :signal-program (list nil
+			      (list nil))
+	:program (list (list "PROGRAM")
+		       (list nil))
+	:block (list nil
+		     (list "BEGIN")
+		     )
+	:declarations (list (list ))))
+
+(defparameter in-error nil)
 (defun parse (lexer-output error-handler)
   (destructuring-bind ((token-table
 			(reversed-id-table identifiers-table)
@@ -18,68 +29,87 @@
 		       (reversed-kw-table keywords-table)
 		       lexer-error-table)
       lexer-output
-    '(declare (ignore identifiers-table reversed-id-table
-		     constants-table
-		     reversed-kw-table
-		     error-table))
     (let ((token-index 0)
 	  (token-end (length token-table))
 	  (program-token (gethash "PROGRAM" keywords-table))
 	  (semicolon (char-code #\;))
+	  (dot (char-code #\.))
+	  (equal (char-code #\=))
 	  (begin-keyword (gethash "BEGIN" keywords-table))
 	  (end-keyword (gethash "END" keywords-table))
-	  (const-keyword (gethash "CONST" keywords-table)))
-      
+	  (const-keyword (gethash "CONST" keywords-table))
+	  (current-token nil)
+	  (current-position nil))
+      (print token-table)
       (labels ((%peek ()
-		 (second (aref token-table token-index)))
+		 (let ((curr-tok (aref token-table token-index)))
+		   (setf current-position (first curr-tok))
+		   (print (setf current-token (second curr-tok)))))
 	       
 	       (%token ()
 		 (when (< token-index token-end)
 		   (prog1 (%peek)
 		     (incf token-index))))
-
+	       
 	       (%err-str (expected-p un/expected-what
 			  &key (to nil) (before nil) (after nil))
 		 (funcall error-handler
 			  (create-error-message
+			   current-token current-position
 			   expected-p un/expected-what
-			   :to to :before before :after after)))
+			   :to to :before before :after after))
+		 (return-from parse)
+		 :error)
 
 	       (%token-eq (token-type token-value &aux (token (%token)))
 		 (and (eq (first token) token-type)
 		      (eq (second token) token-value)))
+
+	       (%peek-eq (token-type token-value &aux (token (%peek)))
+		 (when (and (eq (first token) token-type)
+			    (eq (second token) token-value))
+		   (%token)
+		   t))
 	       
 	       (%signal-program ()
-		 `(:signal-program ,(%program)))
+		 (list :signal-program (%program)))
 	       
 	       (%program ()
-		 (if (%token-eq :keyword program-token)
-		     `(:program ,(%procedure-identifier)
-				,(if (%token-eq :single-char semicolon)
-				     (%block)
-				     (error "semicolon expected")))
-		     (error "program expected")))
+		 (if (%peek-eq :keyword program-token)
+		     (list :program (%procedure-identifier)
+			   (if (%peek-eq :single-char semicolon)
+			       (prog1 (%block)
+				 (if (%peek-eq :single-char dot)
+				     (%err-str t "dot" :after "block")))
+			       (%err-str t "semicolon"
+					 :after "procedure identifier"
+					 :before "block")))
+		     (%err-str t "PROGRAM"
+			       :before "statements list"
+			       :after "declarations")))
 	       
 	       (%procedure-identifier ()
-		 `(:procedure-identifier ,(%identifier)))
+		 (list :procedure-identifier (%identifier)))
 
 	       (%block ()
 		 (list :block (%declarations)
-		       (if (%token-eq :keyword begin-keyword)
+		       (if (%peek-eq :keyword begin-keyword)
 			   (prog1 (%statements-list)
-			     (unless (%token-eq :keyword end-keyword)
-			       (error "end expected")))
-			   (error "begin expected"))))
+			     (unless (%peek-eq :keyword end-keyword)
+			       (%err-str t "END" :after "statements list")))
+			   (%err-str t "BEGIN"
+				     :before "statements list"
+				     :after "declarations"))))
 
 	       (%declarations ()
-		 `(:declarations ,(%constant-declarations)))
+		 (list :declarations (%constant-declarations)))
 
 	       (%statements-list ()
-		 `(:statements-list :empty))
+		 (list :statements-list :empty))
 	       
 	       (%constant-declarations ()
 		 (list :constant-declarations
-		       (if (%token-eq :keyword const-keyword)
+		       (if (%peek-eq :keyword const-keyword)
 			   (%constant-declarations-list)
 			   :empty)))
 
@@ -93,17 +123,17 @@
 	       (%constant-declaration ()
 		 (list :constant-declaration
 		       (%constant-identifier)
-		       (when (%token-eq :single-char
-				      (char-code #\=))
+		       (when (%token-eq :single-char equal)
 			   (prog1 (%constant)
-			     (unless (%token-eq :single-char semicolon)
-			       (error "semicolon expected"))))))
+			     (unless (%peek-eq :single-char semicolon)
+			       (%err-str t "semicolon"
+					 :after "constant"))))))
 	       
 	       (%constant-identifier ()
-		 `(:constant-identifier ,(%identifier)))
+		 (list :constant-identifier (%identifier)))
 
 	       (%constant ()
-		 `(:constant ,(%complex-number)))
+		 (list :constant (%complex-number)))
 
 	       (%predicate (name-key token)
 		 (eq (first token) name-key))
@@ -114,7 +144,7 @@
 	       (%complex-number ()
 		 (if (%complex-number-p)
 		     (%token)
-		     (error "complex-number expected")))
+		     (%err-str t "complex number")))
 
 	       (%identifier-p ()
 		 (%predicate :identifier (%peek)))
@@ -122,15 +152,13 @@
 	       (%identifier ()
 		 (if (%identifier-p)
 		     (%token)
-		     (error "identifier expected"))))
+		     (%err-str t "identifier"))))
+	
 	(list (%signal-program)
 	      (list (list (list reversed-id-table identifiers-table)
 			  constants-table)
 		    (list reversed-kw-table keywords-table)
-		    lexer-error-table))
-	))
-    )
-  )
+		    lexer-error-table))))))
 
 
 (defun parser (lexer-output)

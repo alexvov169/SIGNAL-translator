@@ -8,7 +8,8 @@
         :signal-translator/markup-lexer
 	:signal-translator/syntax-analyzer
 	:signal-translator/test-parser)
-  (:export #:markup-parser-output))
+  (:export #:markup-parser-output
+	   #:main))
 
 (in-package :markup-parser)
 
@@ -24,20 +25,22 @@
 			    (if (atom branch)
 				(list :li
 				      (list :span
-					    (if (eq :empty branch)
-						(vertex-labeller root)
+					    (if (or (eq :empty branch)
+						    (eq :error branch))
+						(vertex-labeller branch)
 						(vertex-labeller
 						 (%dump-token root branch)))))
 				(%aux (first branch) (rest branch))))
 			  branches)))))
+    (print tree)
     (list :ul (%aux (first tree) (rest tree)))))
 
 (defun markup-parser-output (lexer-output)
   (destructuring-bind (tree reversed-kw-table reversed-id-table
 		       constants-table parser-error-table)
       (parser lexer-output)
-    (markup* `(:div ,(print (markup-tree tree reversed-kw-table
-					 reversed-id-table constants-table)))
+    (markup* `(:div ,(markup-tree tree reversed-kw-table
+				  reversed-id-table constants-table))
 	     `(:div (raw ,(tree-to-svg tree reversed-kw-table
 				       reversed-id-table
 				       constants-table)))
@@ -65,3 +68,12 @@
 				    (read-lines-from-file filespec))))
 	     `(:div (raw ,(markup-lexer-output lexer-output)))
 	     `(:div (raw ,(markup-parser-output lexer-output))))))
+
+(defun main (argv)
+  (if (rest argv)
+      (with-open-file (s "report.html"
+			 :direction :output
+			 :if-exists :supersede
+			 :if-does-not-exist :create)
+	(format s (MARKUP-LEXER-AND-PARSER (second argv))))
+      (error "Please, specify input file")))

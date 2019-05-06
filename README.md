@@ -4,7 +4,7 @@ Simple translator of part of SIGNAL programming language
 Grammar:
 ```HTML
 <signal-program> --> <program>
-<program> --> PROGRAM <procedure-identifier> ; <block>
+<program> --> PROGRAM <procedure-identifier> ; <block>.
 <block> --> <declarations> BEGIN <statements-list> END
 <statements-list> --> <empty>
 <declarations> --> <constant-declarations>

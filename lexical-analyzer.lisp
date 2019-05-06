@@ -106,7 +106,8 @@
 	    (constant-offset 0))
 	(labels
 	    ((%out (token-start-sym token)
-	       (vector-push-extend (list token-position (list token-start-sym token))
+	       (vector-push-extend (list token-position
+					 (list token-start-sym token))
 				   token-table))
 	     (%ws ()
 	       (do ((ws (%inp) (%inp)))
