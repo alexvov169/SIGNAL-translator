@@ -27,27 +27,4 @@ Grammar:
 <letter> --> A | B | C | D | ... | Z
 ```
 
-Examples:
-
-```PASCAL
-PROGRAM SIG3;
-CONST A = '3$EXP(5)'; (*this is
-       	  	       a comment*)
-B = '53';
-C = '1$EXP(10)';
-D = '';
-BEGIN
-END.
-
-(* add border to ins and outs *)
-(* separate err state and unexpected *)
-(*** ***
-*)
-
-(**) (* *)
-  (* багаторядковий
-коментар *)
-  (*****) (*(()*())*) (*;.:*)
-```
-
-![Alt text](https://github.com/alexvov169/SIGNAL-translator/blob/parser-feature/sig3.svg)
+[Examples](http://)
