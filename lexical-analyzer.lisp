@@ -172,7 +172,7 @@
 	     
 	     (%constant ()
 	       (let* ((new-char (%inp))
-		      (re (list 're
+		      (re (list :re
 				(cond ((eq 'eof new-char)
 				       (%err-str nil "EOF" :after "#\\'")
 				       0)
@@ -183,7 +183,7 @@
 			(cond ((eq #\, curr-char)
 			       (%inp)
 			       (list
-				'im
+				:im
 				(cond ((%predicate 'digit curr-char)
 				       (%unsigned))
 				      (t (%err-str t "digit"
@@ -196,7 +196,7 @@
 				    (eq #\( (%inp)))
 			       (%inp)
 			       (list
-				'exp
+				:exp
 				(cond ((%predicate 'digit curr-char)
 				       (prog1 (%unsigned)
 					 (cond ((eq #\) curr-char) (%inp))

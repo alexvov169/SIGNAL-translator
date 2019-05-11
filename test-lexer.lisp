@@ -18,7 +18,7 @@
     (:keyword (gethash token-value reversed-kw-table))
     (:identifier (gethash token-value reversed-id-table))
     (:complex-constant (dump-constant (gethash token-value constants-table)))
-    (t (error "Lexer dump error: wrong token"))))
+    (t (error "Lexer dump error: wrong token ~a" token-value))))
 
 (defun print-token-table (token-table reversed-kw-table
                           reversed-id-table constants-table outstream)

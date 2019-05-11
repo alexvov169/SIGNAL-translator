@@ -3,13 +3,11 @@
 (uiop:define-package :signal-translator/markup-parser
     (:nicknames :markup-parser)
   (:use :common-lisp :cl-markup)
-  (:use :signal-translator/lexical-analyzer
-	:signal-translator/test-lexer
+  (:use :signal-translator/test-lexer
         :signal-translator/markup-lexer
 	:signal-translator/syntax-analyzer
 	:signal-translator/test-parser)
-  (:export #:markup-parser-output
-	   #:main))
+  (:export #:markup-parser-output))
 
 (in-package :markup-parser)
 
@@ -25,55 +23,28 @@
 			    (if (atom branch)
 				(list :li
 				      (list :span
-					    (if (or (eq :empty branch)
-						    (eq :error branch))
-						(vertex-labeller branch)
-						(vertex-labeller
-						 (%dump-token root branch)))))
-				(%aux (first branch) (rest branch))))
+					    (cond ((or (eq :empty branch)
+						       (eq :error branch)
+						       (eq :ignore branch))
+						   (vertex-labeller branch))
+						  (t (vertex-labeller
+						      (%dump-token root branch))))))
+				(if (or (eq root :procedure-identifier)
+					(eq root :constant-identifier))
+				    (%aux (first (second branch))
+					  (rest (second branch)))
+				    (%aux (first branch) (rest branch)))))
 			  branches)))))
-    (print tree)
+    '(print tree)
     (list :ul (%aux (first tree) (rest tree)))))
 
-(defun markup-parser-output (lexer-output)
+(defun markup-parser-output (parser-output)
   (destructuring-bind (tree reversed-kw-table reversed-id-table
 		       constants-table parser-error-table)
-      (parser lexer-output)
+      parser-output
     (markup* `(:div ,(markup-tree tree reversed-kw-table
 				  reversed-id-table constants-table))
 	     `(:div (raw ,(tree-to-svg tree reversed-kw-table
 				       reversed-id-table
 				       constants-table)))
 	     (markup-error-table parser-error-table :parser))))
-
-(defun read-lines (stream)
-  (let ((line (read-line stream nil :eof)))
-    (unless (eq line :eof)
-      (cons line (read-lines stream)))))
-
-(defun read-lines-from-file (file)
-  (with-open-file (s file)
-    (read-lines s)))
-
-(defun create-numbered-code (lines)
-  (let ((line-num 0))
-    (mapcar (lambda (line) (list* (incf line-num) #\  line))
-	    (mapcar (lambda (line) (coerce line 'list))
-		    lines))))
-
-(defun markup-lexer-and-parser (filespec)
-  (let ((lexer-output (lexer filespec)))
-    (markup* `(:div ,(markup-table nil
-				   (create-numbered-code
-				    (read-lines-from-file filespec))))
-	     `(:div (raw ,(markup-lexer-output lexer-output)))
-	     `(:div (raw ,(markup-parser-output lexer-output))))))
-
-(defun main (argv)
-  (if (rest argv)
-      (with-open-file (s "report.html"
-			 :direction :output
-			 :if-exists :supersede
-			 :if-does-not-exist :create)
-	(format s (MARKUP-LEXER-AND-PARSER (second argv))))
-      (error "Please, specify input file")))

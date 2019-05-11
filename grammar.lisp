@@ -1,0 +1,66 @@
+(defmacro define-grammar (name &body forms)
+  `(defparameter ,name ',forms))
+
+(define-grammar +signal+
+  (:signal-program (:program))
+  (:program ("PROGRAM" :procedure-identifier ";" :block))
+  (:block (:declarations "BEGIN" :statements-list "END"))
+  (:statements-list (:empty))
+  (:declarations (:constant-declarations))
+  (:constant-declarations ("CONST" :constant-declarations-list)
+			  (:empty))
+  (:constant-declarations-list (:constant-declaration
+				:constant-declarations-list)
+			       (:empty))
+  (:constant-declaration (:constant-identifier "=" :constant ";"))
+  (:constant-identifier (:identifier)))
+
+(defun create-eq-ht () (make-hash-table :test #'eq))
+
+(defun sym-assoc-list-to-eq-hash-table (assoc-list)
+  (let ((result-hash-table (create-eq-ht)))
+    (dolist (key-value assoc-list)
+      (setf (gethash (first key-value) result-hash-table)
+	    (second key-value)))
+    result-hash-table))
+
+(defun parse-pattern (pattern keywords-table)
+  (mapcar (lambda (pattern-token)
+	    (cond ((stringp pattern-token)
+		   (case (length pattern-token)
+		     (1 (list :single-char (char-code (aref pattern-token 0))))
+		     (t (list :keyword (gethash pattern-token keywords-table)))))
+		  (t pattern-token)))
+	  pattern))
+
+(defun pattern-first-terminal (sort patterns)
+  "Assuming there is no same FIRST pattern tokens"
+  (mapcar (lambda (pattern &aux (token-pattern (first pattern)))
+	    (cond ((symbolp token-pattern)
+		   )
+		  ((consp token-pattern) token-pattern)
+		  (t (error "unsupported token pattern ~a" token-pattern))))
+	  patterns))
+
+(defun grammar-forms-to-grammar-tree-builders (grammar-forms-hashtable
+					       keywords-table scan)
+  (labels ((%create-tree-builder (sort patterns)
+	     ()
+	     '(lambda ()
+	       `(list sort
+		      
+		      (mapcar (lambda (token-pattern)
+				)))))))
+  (let ((parsed-patterns-ht (create-eq-ht))
+	(tree-builders-ht (create-eq-ht)))
+    (maphash (lambda (sort patterns)
+	       (setf (gethash sort parsed-patterns-ht)
+		     (mapcar (lambda (pattern)
+			       (parse-pattern pattern keywords-table))
+			     patterns)))
+	     grammar-forms-hashtable)
+    (maphash (lambda (sort patterns)
+	       (setf (gethash sort tree-builders-ht)
+		     (%create-tree-builder sort patterns)))
+	     parsed-patterns-ht)
+    parsed-patterns-ht))

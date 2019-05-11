@@ -1,0 +1,4 @@
+PROGRAM SIGE;
+
+BEGIN
+END.

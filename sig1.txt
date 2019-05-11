@@ -1,0 +1,10 @@
+PROGRAM sig1;
+CONST A = '3$EXP(5)'; (*this is
+       	  	       a comment*)
+B = '53';
+C = '1$EXP( 10)';
+D = '';
+BEGIN
+END.
+
+(* program idefntifier is missed *)
